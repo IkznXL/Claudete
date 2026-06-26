@@ -8,7 +8,7 @@ jobs:
   oprek-server:
     runs-on: ubuntu-latest
     steps:
-      - name: 1. Setup SSH Server & Key
+      - name: 1. Setup SSH Server and Key
         run: |
           sudo apt-get update
           sudo apt-get install -y openssh-server
@@ -25,16 +25,33 @@ jobs:
           # Menjalankan service SSH
           sudo systemctl start ssh
 
-      - name: 2. Download & Install Zrok
+      - name: 2. Download and Install Zrok
+        env:
+          # Menggunakan token bawaan Actions agar kebal rate limit API
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd /tmp
-          # Mengambil otomatis versi terbaru zrok dari GitHub rilis
-          curl -s https://api.github.com/repos/openziti/zrok/releases/latest | grep "browser_download_url.*linux_amd64.tar.gz" | cut -d : -f 2,3 | tr -d \" | wget -qi -
-          tar -xzf zrok*.tar.gz
-          sudo mv zrok /usr/local/bin/
+          echo "Mencari URL rilis zrok..."
+          # Mengambil URL dengan jq agar lebih akurat
+          ZROK_URL=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/openziti/zrok/releases/latest | jq -r '.assets[] | select(.name | endswith("linux_amd64.tar.gz")) | .browser_download_url' | head -n 1)
+          
+          echo "Mendownload zrok dari: $ZROK_URL"
+          curl -L -o zrok.tar.gz "$ZROK_URL"
+          
+          echo "Mengekstrak file..."
+          tar -xzf zrok.tar.gz
+          
+          echo "Mencari dan memindahkan binary zrok..."
+          # Mencari file bernama persis 'zrok' (antisipasi masuk ke sub-folder)
+          ZROK_BIN=$(find . -type f -name "zrok" | head -n 1)
+          
+          sudo mv "$ZROK_BIN" /usr/local/bin/zrok
           sudo chmod +x /usr/local/bin/zrok
+          
+          # Cek apakah zrok berhasil terinstal
+          zrok version
 
-      - name: 3. Enable Zrok & Expose Port 22 (SSH)
+      - name: 3. Enable Zrok and Expose Port 22
         env:
           ZROK_TOKEN: ${{ secrets.ZROK_TOKEN }}
         run: |
@@ -56,7 +73,7 @@ jobs:
           cat zrok_output.log
           echo "=========================================================="
 
-      - name: 4. Keep Alive (Tahan Server 6 Jam)
+      - name: 4. Keep Alive
         run: |
           echo "Runner sedang ditahan agar tidak mati otomatis..."
           echo "PENTING: Jangan lupa klik 'Cancel workflow' di GitHub jika kamu sudah selesai ngoprek!"
