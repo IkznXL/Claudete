@@ -50,10 +50,10 @@ jobs:
         env:
           ZROK_TOKEN: ${{ secrets.ZROK_TOKEN }}
         run: |
-          # NORMAL: enable tidak butuh --headless karena tidak ada UI
-          zrok enable $ZROK_TOKEN
+          # Gunakan tanda kutip agar token diproses murni sebagai string
+          zrok enable "$ZROK_TOKEN"
 
-          # WAJIB HEADLESS: share butuh --headless agar tidak memanggil /dev/tty di background CI
+          # WAJIB HEADLESS agar tidak ada UI yang crash di background
           zrok share private localhost:22 --backend-mode tcpTunnel --headless > zrok_output.log 2>&1 &
 
           sleep 10
@@ -70,3 +70,10 @@ jobs:
         run: |
           echo "Runner sedang ditahan agar tidak mati otomatis..."
           sleep 6h
+
+      - name: 5. Cleanup (Anti Zombie Environment)
+        # Akan selalu dijalankan di akhir untuk membersihkan kuota Zrok
+        if: always()
+        run: |
+          echo "Membersihkan environment zrok agar limit tidak penuh..."
+          zrok disable || true
