@@ -16,7 +16,6 @@ jobs:
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
 
-          # Penulisan rahasia (secrets) yang benar
           echo "${{ secrets.SSH_PUB_KEY }}" >> ~/.ssh/authorized_keys
           chmod 600 ~/.ssh/authorized_keys
 
@@ -24,7 +23,6 @@ jobs:
 
       - name: 2. Download and Install Zrok
         env:
-          # Penulisan token yang benar
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p /tmp/zrok-dl
@@ -50,14 +48,13 @@ jobs:
 
       - name: 3. Enable Zrok and Expose Port 22 (Private)
         env:
-          # Penulisan token yang benar
           ZROK_TOKEN: ${{ secrets.ZROK_TOKEN }}
         run: |
-          # --headless WAJIB di lingkungan tanpa TTY (CI), biar nggak error /dev/tty
-          zrok --headless enable $ZROK_TOKEN
+          # NORMAL: enable tidak butuh --headless karena tidak ada UI
+          zrok enable $ZROK_TOKEN
 
-          # HARUS pakai 'private' untuk mode TCP
-          zrok --headless share private localhost:22 --backend-mode tcpTunnel > zrok_output.log 2>&1 &
+          # WAJIB HEADLESS: share butuh --headless agar tidak memanggil /dev/tty di background CI
+          zrok share private localhost:22 --backend-mode tcpTunnel --headless > zrok_output.log 2>&1 &
 
           sleep 10
 
@@ -71,6 +68,5 @@ jobs:
 
       - name: 4. Keep Alive
         run: |
-          echo "Runner sedang ditahan..."
-          # Jangan lupa tambahkan sleep agar runner tidak langsung mati
+          echo "Runner sedang ditahan agar tidak mati otomatis..."
           sleep 6h
