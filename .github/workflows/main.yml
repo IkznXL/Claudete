@@ -48,21 +48,24 @@ jobs:
           # Verifikasi instalasi berhasil
           zrok version
 
-      - name: 3. Enable Zrok and Expose Port 22
+      - name: 3. Enable Zrok and Expose Port 22 (Private)
         env:
           ZROK_TOKEN: ${{ secrets.ZROK_TOKEN }}
         run: |
           zrok enable $ZROK_TOKEN
-          zrok share public localhost:22 --backend-mode tcp > zrok_output.log 2>&1 &
+          
+          # HARUS pakai 'private' untuk mode TCP
+          zrok share private localhost:22 --backend-mode tcp > zrok_output.log 2>&1 &
+          
           sleep 10
           
           echo "=========================================================="
-          echo "🔥 ZROK BERHASIL JALAN! 🔥"
-          echo "Cari baris yang mengandung 'access your zrok share' di bawah ini:"
+          echo "🔥 TOKEN ZROK PRIVATE 🔥"
+          echo "Cari kode token di baris 'access your zrok share' di bawah:"
+          echo "Contoh formatnya: zrok access private abcdef12345"
           echo "----------------------------------------------------------"
           cat zrok_output.log
           echo "=========================================================="
-
       - name: 4. Keep Alive
         run: |
           echo "Runner sedang ditahan..."
