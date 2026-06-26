@@ -1,5 +1,3 @@
-name: Gabut SSH Tunnel via Zrok
-
 on:
   workflow_dispatch:
 
@@ -12,54 +10,54 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y openssh-server
           sudo mkdir -p /var/run/sshd
-          
+
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          
-          echo "${{ secrets.SSH_PUB_KEY }}" >> ~/.ssh/authorized_keys
+
+          echo "$ secrets.SSH_PUB_KEY " >> ~/.ssh/authorized_keys
           chmod 600 ~/.ssh/authorized_keys
-          
+
           sudo systemctl start ssh
 
       - name: 2. Download and Install Zrok
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: $ secrets.GITHUB_TOKEN​NOTION_TWS[ ]NOTION_TWS​
         run: |
           mkdir -p /tmp/zrok-dl
           cd /tmp/zrok-dl
-          
+
           echo "Mencari URL rilis zrok..."
           ZROK_URL=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/openziti/zrok/releases/latest | jq -r '.assets[] | select(.name | endswith("linux_amd64.tar.gz")) | .browser_download_url' | head -n 1)
-          
+
           echo "Mendownload zrok dari: $ZROK_URL"
           curl -L -o zrok.tar.gz "$ZROK_URL"
-          
+
           echo "Mengekstrak file..."
           tar -xzf zrok.tar.gz
-          
+
           echo "Mencari dan memindahkan binary..."
           # FAKTA: Di rilis v2.0+, nama aplikasinya berubah jadi 'zrok2'
           # Perintah ini mendeteksi 'zrok2' atau 'zrok' dan memaksanya menjadi 'zrok'
           ZROK_BIN=$(find . -type f \( -name "zrok" -o -name "zrok2" \) | head -n 1)
-          
+
           sudo mv "$ZROK_BIN" /usr/local/bin/zrok
           sudo chmod +x /usr/local/bin/zrok
-          
+
           # Verifikasi instalasi berhasil
           zrok version
 
       - name: 3. Enable Zrok and Expose Port 22 (Private)
         env:
-          ZROK_TOKEN: ${{ secrets.ZROK_TOKEN }}
+          ZROK_TOKEN: $ secrets.ZROK_TOKEN​NOTION_TWS[ ]NOTION_TWS​
         run: |
-          zrok enable $ZROK_TOKEN
-          
+          # --headless WAJIB di lingkungan tanpa TTY (CI), biar nggak error /dev/tty
+          zrok --headless enable $ZROK_TOKEN
+
           # HARUS pakai 'private' untuk mode TCP
-          # Menggunakan tcpTunnel sesuai log error dari zrok
-          zrok share private localhost:22 --backend-mode tcpTunnel > zrok_output.log 2>&1 &
-          
+          zrok --headless share private localhost:22 --backend-mode tcpTunnel > zrok_output.log 2>&1 &
+
           sleep 10
-          
+
           echo "=========================================================="
           echo "🔥 TOKEN ZROK PRIVATE 🔥"
           echo "Cari kode token di baris 'access your zrok share' di bawah:"
@@ -67,7 +65,7 @@ jobs:
           echo "----------------------------------------------------------"
           cat zrok_output.log
           echo "=========================================================="
+
       - name: 4. Keep Alive
         run: |
           echo "Runner sedang ditahan..."
-          sleep 6h
