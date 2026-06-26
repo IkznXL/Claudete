@@ -1,0 +1,63 @@
+name: Gabut SSH Tunnel via Zrok
+
+# Trigger manual menggunakan tombol 'Run workflow'
+on:
+  workflow_dispatch:
+
+jobs:
+  oprek-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Setup SSH Server & Key
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssh-server
+          sudo mkdir -p /var/run/sshd
+          
+          # Setup folder SSH untuk user bawaan GitHub Actions ('runner')
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          # Memasukkan SSH Public Key Termux dari GitHub Secrets
+          echo "${{ secrets.SSH_PUB_KEY }}" >> ~/.ssh/authorized_keys
+          chmod 600 ~/.ssh/authorized_keys
+          
+          # Menjalankan service SSH
+          sudo systemctl start ssh
+
+      - name: 2. Download & Install Zrok
+        run: |
+          cd /tmp
+          # Mengambil otomatis versi terbaru zrok dari GitHub rilis
+          curl -s https://api.github.com/repos/openziti/zrok/releases/latest | grep "browser_download_url.*linux_amd64.tar.gz" | cut -d : -f 2,3 | tr -d \" | wget -qi -
+          tar -xzf zrok*.tar.gz
+          sudo mv zrok /usr/local/bin/
+          sudo chmod +x /usr/local/bin/zrok
+
+      - name: 3. Enable Zrok & Expose Port 22 (SSH)
+        env:
+          ZROK_TOKEN: ${{ secrets.ZROK_TOKEN }}
+        run: |
+          # Autentikasi akun zrok
+          zrok enable $ZROK_TOKEN
+          
+          # Menjalankan zrok di background untuk expose port 22
+          # Log diarahkan ke file agar URL bisa kita ekstrak/baca
+          zrok share public localhost:22 --backend-mode tcp > zrok_output.log 2>&1 &
+          
+          # Jeda sebentar agar zrok selesai generate URL di server mereka
+          sleep 10
+          
+          # Menampilkan informasi koneksi ke layar log Actions
+          echo "=========================================================="
+          echo "🔥 ZROK BERHASIL JALAN! 🔥"
+          echo "Cari baris yang mengandung 'access your zrok share' di bawah ini:"
+          echo "----------------------------------------------------------"
+          cat zrok_output.log
+          echo "=========================================================="
+
+      - name: 4. Keep Alive (Tahan Server 6 Jam)
+        run: |
+          echo "Runner sedang ditahan agar tidak mati otomatis..."
+          echo "PENTING: Jangan lupa klik 'Cancel workflow' di GitHub jika kamu sudah selesai ngoprek!"
+          sleep 6h
