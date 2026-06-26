@@ -27,12 +27,13 @@ jobs:
 
       - name: 2. Download and Install Zrok
         env:
-          # Menggunakan token bawaan Actions agar kebal rate limit API
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd /tmp
+          # Buat folder khusus agar pencarian tidak nyasar ke file sistem root
+          mkdir -p /tmp/zrok-dl
+          cd /tmp/zrok-dl
+          
           echo "Mencari URL rilis zrok..."
-          # Mengambil URL dengan jq agar lebih akurat
           ZROK_URL=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/openziti/zrok/releases/latest | jq -r '.assets[] | select(.name | endswith("linux_amd64.tar.gz")) | .browser_download_url' | head -n 1)
           
           echo "Mendownload zrok dari: $ZROK_URL"
@@ -42,7 +43,7 @@ jobs:
           tar -xzf zrok.tar.gz
           
           echo "Mencari dan memindahkan binary zrok..."
-          # Mencari file bernama persis 'zrok' (antisipasi masuk ke sub-folder)
+          # Karena sudah di folder khusus, find pasti lancar
           ZROK_BIN=$(find . -type f -name "zrok" | head -n 1)
           
           sudo mv "$ZROK_BIN" /usr/local/bin/zrok
