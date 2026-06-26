@@ -1,3 +1,5 @@
+name: Gabut SSH Tunnel via Zrok
+
 on:
   workflow_dispatch:
 
@@ -14,14 +16,16 @@ jobs:
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
 
-          echo "$ secrets.SSH_PUB_KEY " >> ~/.ssh/authorized_keys
+          # Penulisan rahasia (secrets) yang benar
+          echo "${{ secrets.SSH_PUB_KEY }}" >> ~/.ssh/authorized_keys
           chmod 600 ~/.ssh/authorized_keys
 
           sudo systemctl start ssh
 
       - name: 2. Download and Install Zrok
         env:
-          GITHUB_TOKEN: $ secrets.GITHUB_TOKEN​NOTION_TWS[ ]NOTION_TWS​
+          # Penulisan token yang benar
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p /tmp/zrok-dl
           cd /tmp/zrok-dl
@@ -36,8 +40,6 @@ jobs:
           tar -xzf zrok.tar.gz
 
           echo "Mencari dan memindahkan binary..."
-          # FAKTA: Di rilis v2.0+, nama aplikasinya berubah jadi 'zrok2'
-          # Perintah ini mendeteksi 'zrok2' atau 'zrok' dan memaksanya menjadi 'zrok'
           ZROK_BIN=$(find . -type f \( -name "zrok" -o -name "zrok2" \) | head -n 1)
 
           sudo mv "$ZROK_BIN" /usr/local/bin/zrok
@@ -48,7 +50,8 @@ jobs:
 
       - name: 3. Enable Zrok and Expose Port 22 (Private)
         env:
-          ZROK_TOKEN: $ secrets.ZROK_TOKEN​NOTION_TWS[ ]NOTION_TWS​
+          # Penulisan token yang benar
+          ZROK_TOKEN: ${{ secrets.ZROK_TOKEN }}
         run: |
           # --headless WAJIB di lingkungan tanpa TTY (CI), biar nggak error /dev/tty
           zrok --headless enable $ZROK_TOKEN
@@ -69,3 +72,5 @@ jobs:
       - name: 4. Keep Alive
         run: |
           echo "Runner sedang ditahan..."
+          # Jangan lupa tambahkan sleep agar runner tidak langsung mati
+          sleep 6h
