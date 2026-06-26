@@ -55,7 +55,8 @@ jobs:
           zrok enable $ZROK_TOKEN
           
           # HARUS pakai 'private' untuk mode TCP
-          zrok share private localhost:22 --backend-mode tcp > zrok_output.log 2>&1 &
+          # Menggunakan tcpTunnel sesuai log error dari zrok
+          zrok share private localhost:22 --backend-mode tcpTunnel > zrok_output.log 2>&1 &
           
           sleep 10
           
